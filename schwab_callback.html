@@ -4,97 +4,33 @@
   <meta charset="UTF-8">
   <title>Schwab OAuth Callback</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      text-align: center;
-    }
+    body { font-family: Arial, sans-serif; padding: 40px; }
+    .box { padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+    .code { font-size: 20px; font-weight: bold; color: #333; }
   </style>
 </head>
 <body>
 
-<h2>Processing Schwab Login…</h2>
-<p id="status">Please wait…</p>
+<div class="box">
+  <h2>Schwab Login Complete</h2>
+  <p id="status">Extracting authorization code…</p>
+  <p class="code" id="code"></p>
+</div>
 
 <script>
-// -------------------------------
-// 1. Extract ?code= from URL
-// -------------------------------
-const params = new URLSearchParams(window.location.search);
-const code = params.get("code");
+function run() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
 
-if (!code) {
-    document.getElementById("status").innerText =
-        "Error: No OAuth code found in redirect URL.";
-    throw new Error("Missing OAuth code");
+  if (!code) {
+    document.getElementById("status").innerText = "No code found in URL.";
+    return;
+  }
+
+  document.getElementById("code").innerText = code;
+  document.getElementById("status").innerText = "Code received. You may close this page.";
 }
-
-// -------------------------------
-// 2. Prepare GitHub API request
-// -------------------------------
-const githubToken = "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";  
-
-const repoOwner = "csarneson";
-const repoName = "schwab-test";
-const filePath = "oauth_code.json";
-
-const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
-
-// -------------------------------
-// 3. Fetch existing file SHA (required for updates)
-// -------------------------------
-async function getFileSha() {
-    const response = await fetch(apiUrl, {
-        headers: { Authorization: `Bearer ${githubToken}` }
-    });
-
-    if (response.status === 404) {
-        return null; // File does not exist yet
-    }
-
-    const data = await response.json();
-    return data.sha;
-}
-
-// -------------------------------
-// 4. Write the OAuth code to GitHub
-// -------------------------------
-async function writeCodeToGitHub() {
-    const sha = await getFileSha();
-
-    const contentObj = { code: code, timestamp: Date.now() };
-    const contentString = JSON.stringify(contentObj, null, 2);
-    const encodedContent = btoa(unescape(encodeURIComponent(contentString)));
-
-    const body = {
-        message: "OAuth code update",
-        content: encodedContent,
-        sha: sha || undefined
-    };
-
-    const response = await fetch(apiUrl, {
-        method: "PUT",
-        headers: {
-            Authorization: `Bearer ${githubToken}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-        document.getElementById("status").innerText =
-            "Error writing OAuth code to GitHub.";
-        throw new Error("GitHub write failed");
-    }
-
-    document.getElementById("status").innerText =
-        "Login successful. You may close this page.";
-}
-
-// -------------------------------
-// 5. Execute
-// -------------------------------
-writeCodeToGitHub();
+run();
 </script>
 
 </body>
